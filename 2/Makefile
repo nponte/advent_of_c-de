@@ -7,16 +7,14 @@ INCLUDES = -I/usr/local/include -I/usr/include
 
 # Library paths
 LIBPATHS = -L/usr/local/lib -L/usr/lib
-
-# Libraries to link
 LIBS =  -lglog -ldouble-conversion -lz  -lsnappy -llz4 -lzstd -ljemalloc
 
-# Source files and output binary
-SRCS = read_reports.cpp
-OBJS = $(SRCS:.cpp=.o)
-TARGET = read_reports
 
-# Rules
+SRCS = $(wildcard *.cpp)
+OBJS = $(SRCS:.cpp=.o)
+TARGET = stars
+
+
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
