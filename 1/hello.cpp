@@ -9,6 +9,7 @@
 #include <vector>
 #include <glog/logging.h>
 #include <algorithm>
+#include <map>
 
 using namespace std;
 
@@ -45,14 +46,33 @@ int main(int argc, char *argv[]) {
         locations2.push_back(stoi(data[i].substr(data[i].find(" ") + 1)));
     }
 
-    // sort the locations
-    locations1 = sortVector(locations1);
-    locations2 = sortVector(locations2);
+    map<int, int> count1, count2;
+    for (auto i : locations1) {
+      if (count1.find(i) == count1.end()) {
+        count1[i] = 1;
+      } else {
+        count1[i]++;
+      }
+    }
+    for (auto j : locations2) {
+      if (count2.find(j) == count2.end()) {
+        count2[j] = 1;
+      } else {
+        count2[j]++;
+      }
+    }
+    for (auto i : count1) {
+      LOG(INFO) << "num: " << i.first << " count: " << i.second;
+    }
+    for (auto i : count2) {
+      LOG(INFO) << "num: " << i.first << " count: " << i.second;
+    }
 
     uint64_t diff = 0;
-    for (int i = 0; i < locations1.size(); i++) {
- //       LOG(INFO) << "location1: " << locations1[i] << " location2: " << locations2[i];
-        diff += abs(locations1[i] - locations2[i]);
+    for (auto i : locations1) {
+      if (count2.find(i) != count2.end()) {
+        diff += i * count2[i];
+      }
     }
 
     cout << "The difference is: " << diff << endl;
