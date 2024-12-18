@@ -13,7 +13,7 @@ struct Map {
   pair<int, int> robot;
 };
 
-bool pushBox(Map& map, pair<int, int> lBox, pair<int, int> rBox, pair<int, int> movVec) {
+bool canPush(Map& map, pair<int, int> lBox, pair<int, int> rBox, pair<int, int> movVec) {
   auto newlBox = make_pair(lBox.first + movVec.first, lBox.second + movVec.second);
   auto newrBox = make_pair(rBox.first + movVec.first, rBox.second + movVec.second);
 
@@ -24,7 +24,7 @@ bool pushBox(Map& map, pair<int, int> lBox, pair<int, int> rBox, pair<int, int> 
         return false;
       }
       if (map.map[newlBox.first][newlBox.second] == Tile::RBOX) {
-        if (!pushBox(map, {newlBox.first, newlBox.second - 1}, newlBox, movVec)) {
+        if (!canPush(map, {newlBox.first, newlBox.second - 1}, newlBox, movVec)) {
           return false;
         }
       }
@@ -34,9 +34,51 @@ bool pushBox(Map& map, pair<int, int> lBox, pair<int, int> rBox, pair<int, int> 
         return false;
       }
       if (map.map[newrBox.first][newrBox.second] == Tile::LBOX) {
-        if (!pushBox(map, newrBox, {newrBox.first, newrBox.second +1}, movVec)) {
+        if (!canPush(map, newrBox, {newrBox.first, newrBox.second +1}, movVec)) {
           return false;
         }
+      }
+    }
+  }
+
+  // if vertical
+  if (movVec.second == 0) {
+    if ((map.map[newlBox.first][newlBox.second] == Tile::WALL) || (map.map[newrBox.first][newrBox.second] == Tile::WALL)) {
+      return false;
+    }
+    if (map.map[newlBox.first][newlBox.second] == Tile::LBOX) {
+      if (!canPush(map, newlBox, newrBox, movVec)) {
+        return false;
+      }
+    }
+    if (map.map[newlBox.first][newlBox.second] == Tile::RBOX) {
+      if (!canPush(map, {newlBox.first, newlBox.second-1}, newlBox, movVec)) {
+        return false;
+      }
+    }
+    if (map.map[newrBox.first][newrBox.second] == Tile::LBOX) {
+      if (!canPush(map, newrBox, {newrBox.first, newrBox.second+1}, movVec)) {
+        return false;
+      }
+    }
+  }
+  return true;
+};
+
+void pushBox(Map& map, pair<int, int> lBox, pair<int, int> rBox, pair<int, int> movVec) {
+  auto newlBox = make_pair(lBox.first + movVec.first, lBox.second + movVec.second);
+  auto newrBox = make_pair(rBox.first + movVec.first, rBox.second + movVec.second);
+
+  // if horizontal
+  if (movVec.first == 0) {
+    if (movVec.second == -1) {
+      if (map.map[newlBox.first][newlBox.second] == Tile::RBOX) {
+        pushBox(map, {newlBox.first, newlBox.second - 1}, newlBox, movVec);
+      }
+    }
+    if (movVec.second == 1) {
+      if (map.map[newrBox.first][newrBox.second] == Tile::LBOX) {
+        pushBox(map, newrBox, {newrBox.first, newrBox.second +1}, movVec);
       }
     }
     map.map[newlBox.first][newlBox.second] = Tile::LBOX;
@@ -45,32 +87,20 @@ bool pushBox(Map& map, pair<int, int> lBox, pair<int, int> rBox, pair<int, int> 
 
   // if vertical
   if (movVec.second == 0) {
-    if ((map.map[newlBox.first][newlBox.second] == Tile::WALL) || (map.map[newrBox.first][newrBox.second] == Tile::WALL)) {
-      return false;
+    if (map.map[newlBox.first][newlBox.second] == Tile::LBOX) {
+      pushBox(map, newlBox, newrBox, movVec);
     }
-    if (movVec.first == -1) {
-      if (map.map[newlBox.first][newlBox.second] == Tile::LBOX) {
-        if (!pushBox(map, newlBox, newrBox, movVec)) {
-          return false;
-        }
-      }
-      if (map.map[newlBox.first][newlBox.second] == Tile::RBOX) {
-        if (!pushBox(map, {newlBox.first, newlBox.second-1}, newlBox, movVec)) {
-          return false;
-        }
-        map.map[newlBox.first][newlBox.second-1] = Tile::EMPTY;
-      }
-      if (map.map[newrBox.first][newrBox.second] == Tile::LBOX) {
-        if (!pushBox(map, newrBox, {newrBox.first, newrBox.second+1}, movVec)) {
-          return false;
-        }
-        map.map[newrBox.first][newrBox.second+1] = Tile::EMPTY;
-      }
+    if (map.map[newlBox.first][newlBox.second] == Tile::RBOX) {
+      pushBox(map, {newlBox.first, newlBox.second-1}, newlBox, movVec);
+      map.map[newlBox.first][newlBox.second-1] = Tile::EMPTY;
+    }
+    if (map.map[newrBox.first][newrBox.second] == Tile::LBOX) {
+      pushBox(map, newrBox, {newrBox.first, newrBox.second+1}, movVec);
+      map.map[newrBox.first][newrBox.second+1] = Tile::EMPTY;
     }
     map.map[newlBox.first][newlBox.second] = Tile::LBOX;
     map.map[newrBox.first][newrBox.second] = Tile::RBOX;
   }
-  return true;
 };
 
 Map parseMap(vector<string> lines) {
@@ -167,17 +197,19 @@ void applyMovement(Map& map, Direction d) {
     rBox = {newRobot.first, newRobot.second + 1};
   }
 
-  if (pushBox(map, lBox, rBox, movVec)) {
-    map.map[map.robot.first][map.robot.second] = Tile::EMPTY;
-    map.robot = newRobot;
-    map.map[map.robot.first][map.robot.second] = Tile::ROBOT;
-    if (movVec.second == 0) {
-      if (lBox.first == newRobot.first) {
-        map.map[lBox.first][lBox.second] = Tile::EMPTY;
-      }
-      if (rBox.first == newRobot.first) {
-        map.map[rBox.first][rBox.second] = Tile::EMPTY;
-      }
+  if (!canPush(map, lBox, rBox, movVec)) {
+    return;
+  }
+  pushBox(map, lBox, rBox, movVec);
+  map.map[map.robot.first][map.robot.second] = Tile::EMPTY;
+  map.robot = newRobot;
+  map.map[map.robot.first][map.robot.second] = Tile::ROBOT;
+  if (movVec.second == 0) {
+    if (lBox == newRobot) {
+      map.map[rBox.first][rBox.second] = Tile::EMPTY;
+    }
+    if (rBox == newRobot) {
+      map.map[lBox.first][lBox.second] = Tile::EMPTY;
     }
   }
 }
@@ -202,7 +234,7 @@ int main(int argc, char *argv[]) {
     auto map = parseMap(before);
     auto movements = parseMovements(after);
     for (auto movement : movements) {
-      printMap(map);
+//     printMap(map);
       applyMovement(map, movement);
     }
 
